@@ -1,18 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import 'leaflet/dist/leaflet.css'
-
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false })
 const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), { ssr: false })
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false })
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false })
-
 
 import L from 'leaflet'
+import { useMap } from 'react-leaflet'
 
 const iconBySegment = (segment: string) => {
   const colors: Record<string, string> = {
@@ -38,6 +37,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
+const segmentLabel: Record<string, string> = {
+  persona_fisica: 'Persona Física',
+  persona_juridica: 'Persona Jurídica',
+  cooperativa: 'Cooperativa',
+  cdc: 'CDC'
+}
+
 interface Client {
   id: string
   name: string
@@ -49,11 +55,51 @@ interface Client {
   province: { name: string }
 }
 
-const segmentLabel: Record<string, string> = {
-  persona_fisica: 'Persona Física',
-  persona_juridica: 'Persona Jurídica',
-  cooperativa: 'Cooperativa',
-  cdc: 'CDC'
+function ClusterLayer({ clients }: { clients: Client[] }) {
+  const map = useMap()
+  const clusterRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    import('leaflet.markercluster').then(() => {
+      if (clusterRef.current) {
+        map.removeLayer(clusterRef.current)
+      }
+
+      const cluster = (L as any).markerClusterGroup({
+        maxClusterRadius: 40,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+      })
+
+      clients.forEach(client => {
+        if (!client.lat || !client.lng) return
+        const marker = L.marker([client.lat, client.lng], {
+          icon: iconBySegment(client.segment)
+        })
+        marker.bindPopup(`
+          <strong>${client.name}</strong><br/>
+          ${client.company ? client.company + '<br/>' : ''}
+          ${client.city}, ${client.province?.name}<br/>
+          <em>${segmentLabel[client.segment] || client.segment}</em>
+        `)
+        cluster.addLayer(marker)
+      })
+
+      map.addLayer(cluster)
+      clusterRef.current = cluster
+    })
+
+    return () => {
+      if (clusterRef.current) {
+        map.removeLayer(clusterRef.current)
+      }
+    }
+  }, [clients, map])
+
+  return null
 }
 
 export default function Map() {
@@ -89,21 +135,7 @@ export default function Map() {
         attribution='&copy; OpenStreetMap contributors'
       />
       {geoData && <GeoJSON data={geoData} style={geoStyle} />}
-     
-        {clients.map(client =>
-          client.lat && client.lng ? (
-            <Marker key={client.id} position={[client.lat, client.lng]} icon={iconBySegment(client.segment)}>
-              <Popup>
-                <strong>{client.name}</strong><br />
-                {client.company}<br />
-                {client.city}, {client.province?.name}<br />
-                <em>{segmentLabel[client.segment] || client.segment}</em>
-              </Popup>
-            </Marker>
-          ) : null
-        )}
-      
-      
+      <ClusterLayer clients={clients} />
     </MapContainer>
   )
 }
