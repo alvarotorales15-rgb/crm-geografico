@@ -30,8 +30,10 @@ export default function ClientList({ refresh, onClientSelect }: ClientListProps)
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(filter.toLowerCase()) ||
     c.company?.toLowerCase().includes(filter.toLowerCase()) ||
-    c.city?.toLowerCase().includes(filter.toLowerCase())
+    c.city?.toLowerCase().includes(filter.toLowerCase()) ||
+    (c as any).account_number?.toLowerCase().includes(filter.toLowerCase())
   )
+  
 
   const segmentColor: Record<string, string> = {
     persona_fisica: '#15803d',

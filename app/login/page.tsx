@@ -15,7 +15,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Escribí tu email primero')
+      return
+    }
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://crm-geografico.vercel.app/reset-password'
+    })
+    if (error) setError(error.message)
+    else setMessage('Te enviamos un email para resetear tu contraseña.')
+    setLoading(false)
+  }
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -99,6 +112,13 @@ export default function LoginPage() {
             {loading ? 'Cargando...' : isRegister ? 'Crear cuenta' : 'Ingresar'}
           </button>
         </form>
+        <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
+  <span onClick={handleForgotPassword}
+    style={{ color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>
+    ¿Olvidaste tu contraseña?
+  </span>
+</p>
+
 
         <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#6b7280' }}>
           {isRegister ? '¿Ya tenés cuenta?' : '¿No tenés cuenta?'}{' '}
