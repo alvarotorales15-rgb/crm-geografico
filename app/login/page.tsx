@@ -22,12 +22,13 @@ export default function LoginPage() {
     }
     setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://crm-geografico.vercel.app/reset-password'
+      redirectTo: 'https://crm-geografico.vercel.app/auth/callback'
     })
     if (error) setError(error.message)
     else setMessage('Te enviamos un email para resetear tu contraseña.')
     setLoading(false)
   }
+  
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
